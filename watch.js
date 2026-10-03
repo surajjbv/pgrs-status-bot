@@ -54,9 +54,9 @@ function ensureModel() {
   const loaded = JSON.parse(lms('ps', '--json')).find((m) => m.modelKey === MODEL_KEY || m.path === MODEL_KEY);
   if (loaded) return (modelId = loaded.identifier);
   log(`loading ${MODEL_KEY}…`);
-  lms('load', MODEL_KEY, '--identifier', 'govtrack-whatsapp', '--context-length', '4096', '-y');
+  lms('load', MODEL_KEY, '--identifier', 'pgrs-status-bot', '--context-length', '4096', '-y');
   ownModel = true;
-  return (modelId = 'govtrack-whatsapp');
+  return (modelId = 'pgrs-status-bot');
 }
 function releaseModel() {
   if (ownModel) try { lms('unload', modelId); } catch { /* already gone */ }
@@ -322,6 +322,6 @@ async function main() {
 main().then(() => process.exit(0), (err) => {
   log(`FAILED: ${err.message}`);
   if (err instanceof LowMemory) process.exit(1); // routine: the scheduler retries, no popup
-  try { execFileSync('osascript', ['-e', `display notification ${JSON.stringify(clip(err.message, 150))} with title "govtrack-whatsapp failed"`]); } catch { /* no GUI */ }
+  try { execFileSync('osascript', ['-e', `display notification ${JSON.stringify(clip(err.message, 150))} with title "pgrs-status-bot failed"`]); } catch { /* no GUI */ }
   process.exit(1);
 });

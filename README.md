@@ -1,4 +1,4 @@
-# govtrack-whatsapp
+# pgrs-status-bot
 
 Tracks the status of Indian government applications and posts a short digest to a WhatsApp group,
 twice a day, on a Mac. Captchas are read by a **local** vision model (Gemma 4 in LM Studio), so it runs

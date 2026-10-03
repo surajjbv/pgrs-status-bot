@@ -7,7 +7,7 @@
 #                             then every 30 min after 3 tries.
 set -u
 cd "$(dirname "$0")"
-LABEL=com.govtrack-whatsapp
+LABEL=com.pgrs-status-bot
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 
 case "${1:-}" in
