@@ -1,0 +1,26 @@
+{
+  "name": "govtrack-whatsapp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Tracks Indian government application statuses (Karnataka IPGRS, AP PGRS, AP eMunicipal) and posts a short WhatsApp digest; captchas read by a local vision LLM (LM Studio)",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node watch.js",
+    "dry": "node watch.js --dry",
+    "login": "node watch.js --login",
+    "schedule": "bash schedule.sh install",
+    "unschedule": "bash schedule.sh uninstall"
+  },
+  "dependencies": {
+    "puppeteer-core": "24.38.0",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "github:wwebjs/whatsapp-web.js#58ddf1561cd783d6a548fa812eb70a05944604b4"
+  },
+  "puppeteer": {
+    "skipDownload": true
+  },
+  "license": "MIT"
+}
