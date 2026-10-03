@@ -34,7 +34,12 @@ const who = (s) => String(s ?? '').replace(/^[^:]*::/, ''); // '1234567::A B NAM
 // Reuses the model if it is already loaded; otherwise loads it and unloads it on exit.
 const LMS = path.join(os.homedir(), '.lmstudio/bin/lms');
 const MODEL_KEY = E.MODEL || 'gemma-4-26b-a4b-it-qat-mlx';
-let modelId = null, ownModel = false;
+let modelId = null, ownModel = false, usedModel = null; // usedModel: key of the model that read captchas this run
+/** 'gemma-4-26b-a4b-it-qat-mlx' -> 'Gemma 4 26B', 'qwen3.5-9b-mlx' -> 'Qwen 3.5 9B'. */
+const modelLabel = (key) => {
+  const m = String(key).split('/').pop().match(/^([a-z]+)-?([\d.]+)-(\d+b)/i);
+  return m ? `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]} ${m[3].toUpperCase()}` : key;
+};
 const lms = (...a) => execFileSync(LMS, a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 300000 });
 class LowMemory extends Error {}
 // Loads only if macOS reports normal memory pressure and enough free RAM for the model plus 4 GB headroom.
@@ -52,10 +57,11 @@ function ensureModel() {
   if (modelId) return modelId;
   lms('server', 'start');
   const loaded = JSON.parse(lms('ps', '--json')).find((m) => m.modelKey === MODEL_KEY || m.path === MODEL_KEY);
-  if (loaded) return (modelId = loaded.identifier);
+  if (loaded) { usedModel = loaded.modelKey; return (modelId = loaded.identifier); }
   log(`loading ${MODEL_KEY}…`);
   lms('load', MODEL_KEY, '--identifier', 'pgrs-status-bot', '--context-length', '4096', '-y');
   ownModel = true;
+  usedModel = MODEL_KEY;
   return (modelId = 'pgrs-status-bot');
 }
 function releaseModel() {
@@ -311,7 +317,7 @@ async function main() {
   }
   releaseModel(); // free memory before WhatsApp starts its browser
   const day = new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short' });
-  const text = [`*Application status · ${day}*`, ...sites.map((s) => section(s, state[s.key], results[s.key]))].join('\n');
+  const text = [`*Application status · ${day}*`, ...sites.map((s) => section(s, state[s.key], results[s.key])), ...(usedModel ? [`_🤖 ${modelLabel(usedModel)} (local)_`] : [])].join('\n');
   console.log(`\n${text}\n`);
   if (args.includes('--dry')) return;
   await sendWhatsApp(text);

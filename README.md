@@ -11,10 +11,11 @@ unattended and nothing leaves your machine except the site lookups and the Whats
 🔔 *Property Tax* — Assistant approved → Bill collector approved
    ↳ 30 Sep: Bill Collector Approved by A B NAME (+1 more)
    https://emunicipal.ap.gov.in/services/property-tax/application-status
+_🤖 Gemma 4 26B (local)_
 ```
 
 One line per application plus its latest update. A change is marked 🔔 with the old → new status, the
-newest update and a link for details. A site that can't be checked shows ⚠️.
+newest update and a link for details. A site that can't be checked shows ⚠️. The last line names the local model that read the captchas.
 
 | Site | How |
 |------|-----|
