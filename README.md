@@ -25,15 +25,16 @@ _🤖 Qwen 3.8 27B (local)_
 3. **Act**: send to the WhatsApp group and remember what was sent. A slot already sent is never sent twice.
 
 The model is shared with the other bots and released before WhatsApp starts Chrome. If it can't be had (busy, or
-too little memory for LM Studio's guardrail), nothing is sent and the run is retried. WhatsApp uses
-school-reminder-bot's linked session (`whatsappDir`); the two bots take turns.
+too little memory for LM Studio's guardrail), nothing is sent and the run is retried. WhatsApp uses one
+linked login shared with school-reminder-bot, kept outside both projects (`whatsappDir`: `~/.local/state/whatsapp`);
+the two bots take turns.
 
 ## Setup (macOS, Node 24+, Google Chrome, LM Studio with Qwen3.8 27B)
 
 ```
 npm install
 cp .env.example .env    # your IDs, mobile number and WhatsApp group
-npm run login           # only without a shared whatsappDir: link WhatsApp (scan the QR)
+npm run login           # link WhatsApp once (scan the QR); skip if whatsappDir already holds a login
 npm start               # check and send now
 npm run schedule        # send at runTimes from now on (npm run unschedule to stop)
 ```

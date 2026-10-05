@@ -17,7 +17,7 @@ runBot({
   name: 'pgrs-status-bot',
   defaults: {
     runTimes: ['10:00', '20:00'],
-    whatsappDir: 'data', // folder holding wa-auth/: another bot's data folder to share its WhatsApp login
+    whatsappDir: 'data', // folder holding wa-auth/ (the linked WhatsApp login); can be shared with other bots
     captchaTries: 8, // per site; a wrong read just costs a new captcha
     debugCaptcha: false, // save each captcha with the model's reading in data/
   },

@@ -2,8 +2,12 @@
   "_comment": "Public settings (personal values live in .env). Defaults and validation: bot.js and kit.js.",
   "model": "qwen3.8-27b-mlx",
   "timezone": "Asia/Kolkata",
-  "runTimes": ["10:00", "20:00"],
-  "whatsappDir": "~/Code/school-reminder-bot/data",
+  "runTimes": [
+    "10:00",
+    "20:00"
+  ],
+  "_whatsappDir": "the linked WhatsApp login (wa-auth/), one folder shared by the bots that message; they take turns",
+  "whatsappDir": "~/.local/state/whatsapp",
   "captchaTries": 8,
   "debugCaptcha": false,
   "chromePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
