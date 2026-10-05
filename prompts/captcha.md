@@ -1,0 +1,1 @@
+Read the %LEN% characters in this captcha image, left to right. It is case-sensitive: keep each letter's upper or lower case exactly as drawn. Letters may overlap, be distorted, or be partly cut off at the edges; work out each one from the visible strokes. Ignore the dots and noise. Reply with only those %LEN% characters, no spaces.

@@ -5,14 +5,15 @@
   "type": "module",
   "description": "Tracks Indian government application statuses (Karnataka IPGRS, AP PGRS, AP eMunicipal) and posts a short WhatsApp digest; captchas read by a local vision LLM (LM Studio)",
   "engines": {
-    "node": ">=22.13"
+    "node": ">=24"
   },
   "scripts": {
-    "start": "node watch.js",
-    "dry": "node watch.js --dry",
-    "login": "node watch.js --login",
-    "schedule": "bash schedule.sh install",
-    "unschedule": "bash schedule.sh uninstall"
+    "start": "node --disable-warning=ExperimentalWarning bot.js",
+    "dry": "node --disable-warning=ExperimentalWarning bot.js --dry",
+    "test": "node --disable-warning=ExperimentalWarning --test test.js",
+    "login": "node --disable-warning=ExperimentalWarning bot.js --login",
+    "schedule": "bash kit/schedule.sh install",
+    "unschedule": "bash kit/schedule.sh uninstall"
   },
   "dependencies": {
     "puppeteer-core": "24.38.0",
@@ -22,5 +23,6 @@
   "puppeteer": {
     "skipDownload": true
   },
-  "license": "MIT"
+  "license": "MIT",
+  "main": "bot.js"
 }

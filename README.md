@@ -1,7 +1,7 @@
 # pgrs-status-bot
 
 Tracks the status of Indian government applications and posts a short digest to a WhatsApp group,
-twice a day, on a Mac. Captchas are read by a **local** vision model (Gemma 4 in LM Studio), so it runs
+twice a day, on a Mac. Captchas are read by a **local** vision model (Qwen3.8 27B in LM Studio), so it runs
 unattended and nothing leaves your machine except the site lookups and the WhatsApp message.
 
 ```
@@ -11,7 +11,7 @@ unattended and nothing leaves your machine except the site lookups and the Whats
 🔔 *Property Tax* — Assistant approved → Bill collector approved
    ↳ 30 Sep: Bill Collector Approved by A B NAME (+1 more)
    https://emunicipal.ap.gov.in/services/property-tax/application-status
-_🤖 Gemma 4 26B (local)_
+_🤖 Qwen 3.8 27B (local)_
 ```
 
 One line per application plus its latest update. A change is marked 🔔 with the old → new status, the
@@ -24,24 +24,28 @@ newest update and a link for details. A site that can't be checked shows ⚠️.
 | [AP eMunicipal](https://emunicipal.ap.gov.in) property tax | public JSON API (status + Workflow History), no captcha |
 
 ## How it runs
-- At `RUN_TIMES` (default 10:00 and 20:00 IST) via a launchd agent that ticks every 5 min. A time missed
-  while the Mac was off or asleep runs 10 min after it is back (up to 10 h late).
-- Before loading the model it checks macOS memory pressure and free RAM (model size + 4 GB). If short,
-  it sends nothing and retries (every 5 min, then every 30 min). An already-loaded model is reused.
-- Optionally shares the WhatsApp login of another whatsapp-web.js bot (`WA_SHARE_DIR`); the two take
-  turns via a lock dir, so they never open WhatsApp or load the model at the same time.
+- At `runTimes` in `config.json` (10:00 and 20:00 IST) via the shared launchd scheduler (`kit/schedule.sh`,
+  every 5 min). A time missed while the Mac was off or asleep runs 10 min after it is back (up to 10 h late);
+  a failed run retries every 5 min three times, then every 30 min.
+- The model is shared with the other bots through the lease protocol in `kit/llm.js` (see botkit's
+  PROTOCOL.md): an already-loaded copy is reused; otherwise it is loaded if LM Studio's memory guardrail allows,
+  and unloaded when the last bot is done. If it can't be had, nothing is sent and the run is retried (exit 75).
+  It is released before WhatsApp starts Chrome.
+- Optionally shares the WhatsApp login of another whatsapp-web.js bot (`whatsappDir` in `config.json`); the
+  bots take turns via a lock dir next to that login.
 
-## Setup (macOS, Node ≥ 22.13, Google Chrome, LM Studio with a vision model)
+## Setup (macOS, Node ≥ 24, Google Chrome, LM Studio with Qwen3.8 27B)
 ```
 npm install
-cp .env.example .env   # fill in your IDs, mobile number and WhatsApp group
-npm run login          # skip if WA_SHARE_DIR is set: link WhatsApp (scan the QR)
-npm run dry            # check everything and print the message (nothing sent)
-npm run schedule       # run at RUN_TIMES from now on (npm run unschedule to stop)
+cp .env.example .env   # fill in your IDs, mobile number and WhatsApp group; settings: config.json
+npm run login          # skip if whatsappDir shares another bot's login: link WhatsApp (scan the QR)
+npm run dry            # check everything and print the message (nothing sent or saved)
+npm test               # digest rules
+npm run schedule       # run at runTimes from now on (npm run unschedule to stop)
 ```
 `npm start`, or double-clicking `check-now.command` in Finder, sends a digest right now.
-Logs: `data/run.log`. Last-seen state: `data/state.json` (delete it to start over).
-`DEBUG_CAPTCHA=1 npm run dry` saves each captcha with the model's reading in `data/`.
+Log: `data/bot.log`. Last-sent state: `data/bot.db` (delete it to start over).
+`"debugCaptcha": true` in config.json saves each captcha with the model's reading in `data/`.
 
 Your IDs, mobile number and group name live only in `.env`; `.env` and `data/` are gitignored.
 
