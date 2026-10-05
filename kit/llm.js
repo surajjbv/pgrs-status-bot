@@ -18,6 +18,8 @@ const NO_THINK = '<think>\n\n</think>\n\n';
 
 /** The model could not be had for now (busy, or too little free memory): runBot exits 75, retried quietly. */
 export class ModelBusy extends Error {}
+/** The model answered, but not with JSON matching the schema (bots usually skip that item). */
+export class BadReply extends Error {}
 
 let opts = { bot: 'bot', model: PROFILE.identifier, takeoverIdleMinutes: 5, pollMs: 15000, waitMs: 600000, log: console };
 let lease = null;
@@ -143,7 +145,8 @@ export function check(schema, v, at = 'reply') {
 }
 
 /**
- * One answer from the model as an object matching `schema` (validated), or throws. Deterministic: temperature 0,
+ * One answer from the model as an object matching `schema` (validated), or throws (BadReply if the reply
+ * itself is unusable). Deterministic: temperature 0,
  * thinking off, reply capped at maxTokens. Put fixed instructions in `system` (it is cached across calls) and the
  * changing input in `user`; `images` are PNG/JPEG Buffers.
  */
@@ -165,10 +168,10 @@ export async function ask({ system, user, schema, images = [], maxTokens = 1000,
   const choice = (await res.json()).choices?.[0];
   let obj;
   try { obj = JSON.parse(choice?.message?.content); } catch {
-    throw new Error(`model reply is not JSON${choice?.finish_reason === 'length' ? ` (cut off at ${maxTokens} tokens)` : ''}`);
+    throw new BadReply(`model reply is not JSON${choice?.finish_reason === 'length' ? ` (cut off at ${maxTokens} tokens)` : ''}`);
   }
   const problem = check(schema, obj);
-  if (problem) throw new Error(`model ${problem}`);
+  if (problem) throw new BadReply(`model ${problem}`);
   return obj;
 }
 
