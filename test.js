@@ -1,7 +1,7 @@
 // Digest rules (the sites and the model are not called).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { brief, digest, nice, section, who } from './rules.js';
+import { brief, digest, nice, readCaptcha, section, who } from './rules.js';
 
 const site = { key: 'emunicipal', title: 'Property Tax', url: 'https://example.gov.in/status' };
 const r1 = { short: 'Assistant approved', status: 'Assistant Approved', history: ['28/09/2026 10:00:00: Created by A — “ok”', '29/09/2026 11:00:00: Assistant Approved by B'] };
@@ -28,4 +28,11 @@ test('digest: header, sections, model footer only when the model read captchas',
   assert.equal(digest([site], {}, { emunicipal: r1 }, 'Qwen 3.8 27B', 'Asia/Kolkata', now),
     '*Application status · Mon 5 Oct*\n✅ *Property Tax* — Assistant approved\n   ↳ 29 Sep: Assistant Approved by B\n_🤖 Qwen 3.8 27B (local)_');
   assert.ok(!digest([site], {}, { emunicipal: r1 }, null, 'Asia/Kolkata', now).includes('🤖'));
+});
+
+test('captcha: exactly len letters/digits from the model reply, else null', async () => {
+  const ask = (reply) => async () => reply;
+  assert.equal(await readCaptcha(Buffer.from([0x89]), 5, ask(' QGMPs\n')), 'QGMPs');
+  assert.equal(await readCaptcha(Buffer.from([0x89]), 5, ask('Q G-M P s')), 'QGMPs');
+  assert.equal(await readCaptcha(Buffer.from([0x89]), 6, ask('QGMPs')), null);
 });

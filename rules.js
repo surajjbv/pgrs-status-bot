@@ -1,7 +1,18 @@
-// The digest: one line per site plus its latest update; a change adds what changed and the site's link.
+// Decisions and text, no I/O: the captcha prompt, and the digest (one line per site plus its latest update;
+// a change adds what changed and the site's link).
 export const clip = (s, n = 280) => (s = String(s ?? '').replace(/\s+/g, ' ').trim()).length > n ? s.slice(0, n - 1) + '…' : s;
 export const nice = (s) => { s = String(s ?? '').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().trim(); return s[0]?.toUpperCase() + s.slice(1); }; // 'InProcess' -> 'In process'
 export const who = (s) => String(s ?? '').replace(/^[^:]*::/, ''); // '1234567::A B NAME' -> 'A B NAME'
+
+/**
+ * The captcha's `len` letters/digits as the model reads them, or null. Plain text, not a JSON schema: measured on
+ * Qwen3.8 (2026-10-05) a schema cost accuracy (10/19 accepted vs 13/20). `ask`: kit llm.ask.
+ */
+export async function readCaptcha(img, len, ask) {
+  const prompt = `Read the ${len} characters in this captcha image, left to right. It is case-sensitive: keep each letter's upper or lower case exactly as drawn. Letters may overlap, be distorted, or be partly cut off at the edges; work out each one from the visible strokes. Ignore the dots and noise. Reply with only those ${len} characters, no spaces.`;
+  const code = (await ask({ user: prompt, images: [img], maxTokens: 20 })).replace(/[^A-Za-z0-9]/g, '');
+  return code.length === len ? code : null;
+}
 
 // A history line in brief: short date, no comments. '30/09/2026 12:32:41: X by Y — “…”' -> '30 Sep: X by Y'
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
