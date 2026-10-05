@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Free-no%20subscriptions-F7C21A?style=flat-square" alt="Free">
   <img src="https://img.shields.io/badge/Local%20AI-reads%20the%20captchas-8E7CC3?style=flat-square" alt="Local AI">
   <img src="https://img.shields.io/badge/WhatsApp-digest-25D366?style=flat-square" alt="WhatsApp digest">
-  <img src="https://img.shields.io/badge/Hands--free-10%3A00%20%26%2020%3A00-4FB3E8?style=flat-square" alt="Hands-free">
+  <img src="https://img.shields.io/badge/Hands--free-07%3A00%20%26%2020%3A00-4FB3E8?style=flat-square" alt="Hands-free">
 </p>
 
 <p align="center">
@@ -31,7 +31,7 @@ nobody's favourite job, so this bot does it and tells the family only what chang
 
 <table>
   <tr>
-    <td align="center" width="33%"><h3>🔎</h3><b>Checks the portals</b><br><sub>Karnataka IPGRS, AP PGRS and AP eMunicipal, all at once, at 10:00 and 20:00</sub></td>
+    <td align="center" width="33%"><h3>🔎</h3><b>Checks the portals</b><br><sub>Karnataka IPGRS, AP PGRS and AP eMunicipal, all at once, at 07:00 and 20:00</sub></td>
     <td align="center" width="33%"><h3>🧠</h3><b>Solves the captchas</b><br><sub>A local AI model reads each captcha; a wrong guess just tries again</sub></td>
     <td align="center" width="33%"><h3>💬</h3><b>One short WhatsApp</b><br><sub>One line per application; 🔔 marks a change, with the newest update and a link</sub></td>
   </tr>
