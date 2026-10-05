@@ -39,11 +39,10 @@ newest update and a link for details. A site that can't be checked shows ⚠️.
 npm install
 cp .env.example .env   # fill in your IDs, mobile number and WhatsApp group; settings: config.json
 npm run login          # skip if whatsappDir shares another bot's login: link WhatsApp (scan the QR)
-npm run dry            # check everything and print the message (nothing sent or saved)
 npm test               # digest rules
 npm run schedule       # run at runTimes from now on (npm run unschedule to stop)
 ```
-`npm start`, or double-clicking `check-now.command` in Finder, sends a digest right now.
+`npm start`, or double-clicking `run-now.command` in Finder, sends a digest right now.
 Log: `data/bot.log`. Last-sent state: `data/bot.db` (delete it to start over).
 `"debugCaptcha": true` in config.json saves each captcha with the model's reading in `data/`.
 

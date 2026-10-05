@@ -1,7 +1,6 @@
 // Checks 3 government application statuses and posts one digest per run time to a WhatsApp group.
 // Captchas are read by the local model (kit/llm.js), so it runs unattended.
 //   npm start            check all, send to WhatsApp, remember what was sent
-//   npm run dry          check all, print the message only (nothing sent or saved)
 //   npm run login        link WhatsApp once (scan the QR from the phone)
 //   add -- --only=ipgrs,emunicipal to check just those sites
 import fs from 'node:fs';
@@ -34,7 +33,7 @@ runBot({
   env: ['GROUP_NAME', 'IPGRS_ID', 'IPGRS_MOBILE', 'PGRS_ID', 'EMUN_ULB_ID', 'EMUN_APP'],
   optionalEnv: ['IPGRS_TITLE', 'PGRS_TITLE', 'EMUN_TITLE'],
   importJson: (state, store) => { for (const [key, result] of Object.entries(state)) store.set(`site:${key}`, result); },
-  async main({ cfg, env, store, log, dry, args }) {
+  async main({ cfg, env, store, log, args }) {
     const waDir = path.resolve(cfg.root, expandHome(cfg.whatsappDir));
     const whatsapp = (login = false) => openWhatsApp({ dir: waDir, chromePath: cfg.chromePath, log, login });
     if (args.includes('--login')) {
@@ -42,9 +41,9 @@ runBot({
       try { await wa.findGroup(env.GROUP_NAME); log.done(`linked; group "${env.GROUP_NAME}" found`); } finally { await wa.close(); }
       return;
     }
-    if (!dry && !fs.existsSync(path.join(waDir, 'wa-auth'))) throw new Error('WhatsApp not linked yet: run `npm run login`');
+    if (!fs.existsSync(path.join(waDir, 'wa-auth'))) throw new Error('WhatsApp not linked yet: run `npm run login`');
     const oldSlotFile = path.join(cfg.data, 'sent-slot'); // the slot the old scheduler last sent
-    if (fs.existsSync(oldSlotFile)) { store.set('sentSlot', fs.readFileSync(oldSlotFile, 'utf8').trim()); if (!dry) fs.rmSync(oldSlotFile); }
+    if (fs.existsSync(oldSlotFile)) { store.set('sentSlot', fs.readFileSync(oldSlotFile, 'utf8').trim()); fs.rmSync(oldSlotFile); }
     const slot = process.env.BOT_SLOT; // set by kit/schedule.sh
     if (slot && store.get('sentSlot') === slot) return log.info(`already sent for ${slot}`);
 
@@ -68,8 +67,7 @@ runBot({
     // decide
     const prev = Object.fromEntries(sites.map((s) => [s.key, store.get(`site:${s.key}`)]));
     const text = digest(sites, prev, results, captcha.used ? llm.label(cfg.model) : null, cfg.timezone);
-    log.box(dry ? 'would send' : `sending to "${env.GROUP_NAME}"`, text);
-    if (dry) return;
+    log.box(`sending to "${env.GROUP_NAME}"`, text);
 
     // act
     const wa = await whatsapp();
