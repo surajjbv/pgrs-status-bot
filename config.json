@@ -3,7 +3,7 @@
   "model": "qwen3.8-27b-mlx",
   "timezone": "Asia/Kolkata",
   "runTimes": [
-    "10:00",
+    "07:00",
     "20:00"
   ],
   "_whatsappDir": "the linked WhatsApp login (wa-auth/), one folder shared by the bots that message; they take turns",
