@@ -1,65 +1,98 @@
-# pgrs-status-bot
+<h1 align="center">🏛️ PGRS Status Bot</h1>
 
-Checks three Indian government applications and posts one short WhatsApp digest at 10:00 and 20:00 (IST).
-Captchas are read by a local model (Qwen3.8 27B in LM Studio), so it runs unattended; only the site lookups and
-the WhatsApp message leave the Mac.
+<p align="center">
+  <b>Government grievances move slowly, and every portal hides the status behind a captcha.<br>
+  This bot checks them for you and sends one short WhatsApp, twice a day.</b>
+</p>
 
-```
-*Application status · Sat 3 Oct*
-✅ *KA Grievance* — In process
-   ↳ 28 Sep: Assigned to Project Director
-🔔 *Property Tax* — Assistant approved → Bill collector approved
-   ↳ 30 Sep: Bill Collector Approved by A B NAME (+1 more)
-   https://emunicipal.ap.gov.in/services/property-tax/application-status
-_🤖 Qwen 3.8 27B (local)_
-```
+<p align="center">
+  <img src="https://img.shields.io/badge/Runs%20on-your%20Mac-2FCF5C?style=for-the-badge" alt="Runs on your Mac">
+</p>
 
-## How it works
+<p align="center">
+  <img src="https://img.shields.io/badge/Free-no%20subscriptions-F7C21A?style=flat-square" alt="Free">
+  <img src="https://img.shields.io/badge/Local%20AI-reads%20the%20captchas-8E7CC3?style=flat-square" alt="Local AI">
+  <img src="https://img.shields.io/badge/WhatsApp-digest-25D366?style=flat-square" alt="WhatsApp digest">
+  <img src="https://img.shields.io/badge/Hands--free-10%3A00%20%26%2020%3A00-4FB3E8?style=flat-square" alt="Hands-free">
+</p>
 
-1. **Collect**: the three sites at once. [Karnataka IPGRS](https://ipgrs.karnataka.gov.in) (JSON API, 5-character
-   captcha), [AP PGRS](https://pgrs.ap.gov.in) (headless Chrome, a new one per try, 8 s wait before submitting,
-   case-sensitive 6-character captcha), [AP eMunicipal](https://emunicipal.ap.gov.in) (public JSON API).
-   A wrong captcha read just costs another try (up to `captchaTries`).
-2. **Decide**: compare with what was last sent: ✅ unchanged, 🔔 changed (with the newest update and a link),
-   ⚠️ couldn't check.
-3. **Act**: send to the WhatsApp group and remember what was sent. A slot already sent is never sent twice.
+<p align="center">
+  <img src="docs/digest.png" width="360" alt="The WhatsApp digest">
+</p>
+<p align="center"><sub>The digest in the family group (sample data): ✅ no change · 🔔 something moved, with a link</sub></p>
 
-The model is shared with the other bots and released before WhatsApp starts Chrome. If it can't be had (busy, or
-too little memory for LM Studio's guardrail), nothing is sent and the run is retried. WhatsApp uses one
-linked login shared with school-reminder-bot, kept outside both projects (`whatsappDir`: `~/.local/state/whatsapp`);
-the two bots take turns.
+## 💡 Why
 
-## Setup (macOS, Node 24+, Google Chrome, LM Studio with Qwen3.8 27B)
+A complaint to a government office can take weeks, and the only way to know is to open each portal, type the
+reference number, solve a captcha and read a long history table. Doing that for three applications, twice a day, is
+nobody's favourite job, so this bot does it and tells the family only what changed.
 
-```
-npm install
-cp .env.example .env    # your IDs, mobile number and WhatsApp group
-npm run login           # link WhatsApp once (scan the QR); skip if whatsappDir already holds a login
-npm start               # check and send now
-npm run schedule        # send at runTimes from now on (npm run unschedule to stop)
-```
-Settings: `config.json` (`runTimes`, `timezone`, `whatsappDir`, `captchaTries`, `debugCaptcha`, `model`).
-Personal values: `.env` only (gitignored). Run now: double-click `run-now.command`.
+## ⚙️ How it works
 
-## Files
+<table>
+  <tr>
+    <td align="center" width="33%"><h3>🔎</h3><b>Checks the portals</b><br><sub>Karnataka IPGRS, AP PGRS and AP eMunicipal, all at once, at 10:00 and 20:00</sub></td>
+    <td align="center" width="33%"><h3>🧠</h3><b>Solves the captchas</b><br><sub>A local AI model reads each captcha; a wrong guess just tries again</sub></td>
+    <td align="center" width="33%"><h3>💬</h3><b>One short WhatsApp</b><br><sub>One line per application; 🔔 marks a change, with the newest update and a link</sub></td>
+  </tr>
+</table>
+
+If the Mac was asleep at send time, it sends 10 minutes after it wakes. A send time is never sent twice.
+
+## 🚀 Set it up
+
+<table>
+  <tr>
+    <td align="center" width="33%"><b>1 · Fill in</b><br><sub>Copy <code>.env.example</code> to <code>.env</code>: your application numbers, mobile and WhatsApp group</sub></td>
+    <td align="center" width="33%"><b>2 · Link WhatsApp</b><br><sub><code>npm run login</code> and scan the QR (WhatsApp › Linked devices)</sub></td>
+    <td align="center" width="33%"><b>3 · Switch it on</b><br><sub><code>npm run schedule</code>. To send right now: double-click <code>run-now.command</code></sub></td>
+  </tr>
+</table>
+
+Needs a Mac with Node 24+, Google Chrome and [LM Studio](https://lmstudio.ai) with Qwen3.8 27B.
+
+## 🔒 Private by design
+
+Your numbers and group name stay in `.env` on your Mac and are never committed. The AI runs on the Mac; only the
+status lookups and the WhatsApp message leave it.
+
+<details>
+<summary><b>🛠️ For developers</b></summary>
+
+<br>
+
+<p>
+  <img src="https://img.shields.io/badge/Node-24-339933?style=flat-square" alt="Node 24">
+  <img src="https://img.shields.io/badge/LM%20Studio-Qwen3.8%2027B-5A0FC8?style=flat-square" alt="LM Studio">
+  <img src="https://img.shields.io/badge/whatsapp--web.js-headless%20Chrome-25D366?style=flat-square" alt="whatsapp-web.js">
+</p>
+
+- **One run = collect → decide → act.** Collect: IPGRS (JSON API, 5-character captcha), PGRS (headless Chrome, a
+  new one per try, an 8 s wait before submitting, case-sensitive 6-character captcha), eMunicipal (public JSON
+  API), in parallel; up to `captchaTries` per site. Decide: compare with the last sent result. Act: send, then save.
+- **The model** is shared with the other bots through a lease protocol (`kit.js`): loaded once, reused, unloaded by
+  the last one out; LM Studio's memory guardrail stays on. If it can't be had, the run exits 75 and is retried.
+  Captchas are read as plain text (measured more accurate than a JSON schema on Qwen3.8).
+- **WhatsApp** is one linked login shared with school-reminder-bot (`whatsappDir`: `~/.local/state/whatsapp`); the
+  bots take turns via a lock. It's released before WhatsApp starts Chrome.
+- **Scheduling:** launchd runs `node kit.js tick` every 5 min: once per `runTimes` slot, 10 min after boot/wake,
+  retries after 5 min ×3 then every 30 min, skips slots older than 10 h.
 
 ```
 bot.js            the run: collect → decide → act
 sources.js        the three sites (HTTP, headless Chrome)
 rules.js          captcha prompt, digest text (pure, tested)
-test.js           tests for rules.js           kit.test.js   tests for kit.js
 kit.js            shared kit: config, log, store, model sharing, WhatsApp, run, scheduler
-config.json       public settings              .env.example  personal values template
-pii-check.sh      personal-data gate before a commit: bash pii-check.sh && git commit ...
-run-now.command   double-click = npm start     package.json  npm start · test · login · schedule · unschedule
-data/             (gitignored) bot.db state · bot.log log · run.out scheduler · pgrs-last.html last result page
+test.js · kit.test.js       npm test
+config.json       public settings (runTimes, timezone, whatsappDir, captchaTries, debugCaptcha, model)
+.env.example      personal values template (.env is gitignored)
+pii-check.sh      personal-data gate: bash pii-check.sh && git commit ...
+run-now.command   double-click = npm start
+data/             (gitignored) bot.db · bot.log · run.out · schedule.json · pgrs-last.html
 ```
 
-## When something goes wrong
+**Commands:** `npm start` · `npm test` · `npm run login` · `npm run schedule` / `unschedule`.
+**When something fails:** a macOS notification; details in `data/bot.log` (`FAILED during …`) and `data/run.out`.
+**License:** MIT.
 
-A failure shows a macOS notification. Details: `data/bot.log` (each step, `FAILED during …` with the error) and
-`data/run.out` (each scheduled try and its exit code). `npm test` checks the rules and the kit.
-
-## License
-
-MIT
+</details>
