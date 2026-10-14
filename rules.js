@@ -1,6 +1,6 @@
 // Decisions and text, no I/O: the captcha prompt, and the digest (one line per site plus its latest update;
 // a change adds what changed and the site's link).
-export const clip = (s, n = 280) => (s = String(s ?? '').replace(/\s+/g, ' ').trim()).length > n ? s.slice(0, n - 1) + '…' : s;
+export const clip = (s, n = 280) => { s = String(s ?? '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
 export const nice = (s) => { s = String(s ?? '').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().trim(); return s[0]?.toUpperCase() + s.slice(1); }; // 'InProcess' -> 'In process'
 export const who = (s) => String(s ?? '').replace(/^[^:]*::/, ''); // '1234567::A B NAME' -> 'A B NAME'
 

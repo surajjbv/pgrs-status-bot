@@ -92,6 +92,7 @@ data/             (gitignored) bot.db · bot.log · run.out · schedule.json · 
 ```
 
 **Commands:** `npm start` · `npm test` · `npm run login` · `npm run schedule` / `unschedule`.
+**Code checks:** before committing run `npm run fix && npm run check && npm test` (Biome lint + format; GitHub CI runs the same on every push).
 **When something fails:** a macOS notification; details in `data/bot.log` (`FAILED during …`) and `data/run.out`.
 **License:** MIT.
 
