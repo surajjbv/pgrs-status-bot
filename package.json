@@ -17,7 +17,7 @@
     "fix": "biome check --write ."
   },
   "dependencies": {
-    "puppeteer-core": "24.38.0",
+    "puppeteer-core": "24.43.1",
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "github:wwebjs/whatsapp-web.js#58ddf1561cd783d6a548fa812eb70a05944604b4"
   },
