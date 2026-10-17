@@ -1,35 +1,20 @@
-// pgrs-status-bot: checks 3 government application statuses and posts one digest per run time to a WhatsApp group.
-// Captchas are read by the local model, so it runs unattended.
-//   npm start · npm run login (link WhatsApp once) · npm start -- --only=ipgrs,emunicipal
+// pgrs-status-bot: checks government application statuses (the records in .env) and posts one digest per run time
+// to a WhatsApp group. Captchas are read by the local model, so it runs unattended.
+//   npm start · npm run login (link WhatsApp once) · npm start -- --only=ipgrs,emunicipal (record keys)
 import fs from 'node:fs';
 import path from 'node:path';
-import { expandHome, llm, ModelBusy, openWhatsApp, ROOT, runBot } from './kit.js';
-import { digest, readCaptcha } from './rules.js';
+import { ConfigError, expandHome, llm, ModelBusy, openWhatsApp, ROOT, runBot } from './kit.js';
+import { digest, RECORD_KEY, readCaptcha, records } from './rules.js';
 import { emunicipal, ipgrs, pgrs } from './sources.js';
 
-const SITES = (env) => [
-  {
-    key: 'ipgrs',
-    title: env.IPGRS_TITLE || 'KA Grievance',
-    run: ipgrs,
-    captcha: true,
-    url: `https://ipgrs.karnataka.gov.in/Grievance/GetGrievanceStatus?grievanceId=${env.IPGRS_ID}`,
-  },
-  {
-    key: 'pgrs',
-    title: env.PGRS_TITLE || 'AP Grievance',
-    run: pgrs,
-    captcha: true,
-    url: 'https://pgrs.ap.gov.in/ApplicationStatus.aspx',
-  },
-  {
-    key: 'emunicipal',
-    title: env.EMUN_TITLE || 'Property Tax',
-    run: emunicipal,
-    captcha: false,
-    url: 'https://emunicipal.ap.gov.in/services/property-tax/application-status',
-  },
-];
+const RUN = { ipgrs, pgrs, emunicipal };
+// The record keys in .env (IPGRS_ID, PGRS2_ENABLED, …), so the kit passes them on; rules.js checks their names.
+const envFile = path.join(ROOT, '.env');
+const recordEnv = fs.existsSync(envFile)
+  ? [...fs.readFileSync(envFile, 'utf8').matchAll(/^\s*([A-Z][A-Z0-9_]*)\s*=/gm)]
+      .map((m) => m[1])
+      .filter((k) => RECORD_KEY.test(k))
+  : [];
 
 runBot({
   name: 'pgrs-status-bot',
@@ -39,8 +24,8 @@ runBot({
     captchaTries: 8, // per site; a wrong read just costs a new captcha
     debugCaptcha: false, // save each captcha with the model's reading in data/
   },
-  env: ['GROUP_NAME', 'IPGRS_ID', 'IPGRS_MOBILE', 'PGRS_ID', 'EMUN_ULB_ID', 'EMUN_APP'],
-  optionalEnv: ['IPGRS_TITLE', 'PGRS_TITLE', 'EMUN_TITLE'],
+  env: ['GROUP_NAME'],
+  optionalEnv: recordEnv,
   importJson: (state, store) => {
     for (const [key, result] of Object.entries(state)) store.set(`site:${key}`, result);
   },
@@ -61,19 +46,24 @@ runBot({
     const slot = process.env.BOT_SLOT; // set by the scheduler
     if (slot && store.get('sentSlot') === slot) return log.info(`already sent for ${slot}`);
 
-    // collect: all sites at once (the model takes 2 requests in parallel); one failing site doesn't stop the others
+    // collect: all enabled records at once (the model takes 2 requests in parallel); one failing doesn't stop the others
+    const { list, problems } = records(env);
+    if (problems.length) throw new ConfigError(`.env: ${problems.join('; ')} (see .env.example)`);
     const only = args
       .find((a) => a.startsWith('--only='))
       ?.slice(7)
       .split(',');
-    const sites = SITES(env).filter((s) => !only || only.includes(s.key));
+    const sites = list.filter((s) => (only ? only.includes(s.key) : s.enabled));
+    const off = list.filter((s) => !s.enabled).map((s) => s.key);
+    if (off.length && !only) log.info(`disabled in .env: ${off.join(', ')}`);
+    if (!sites.length) throw new ConfigError('.env: no records to check (all disabled, or none set; see .env.example)');
     if (sites.some((s) => s.captcha)) await llm.acquire(); // no model now: retry the whole run later (exit 75)
     const read = (img, len) => readCaptcha(img, len, llm.ask);
     const results = Object.fromEntries(
       await Promise.all(
         sites.map(async (site) => {
           try {
-            const r = await site.run({ env, cfg, log, read });
+            const r = await RUN[site.kind]({ rec: site.fields, cfg, log, read });
             log.info(`${site.key}: ${r.status}`);
             return [site.key, r];
           } catch (err) {

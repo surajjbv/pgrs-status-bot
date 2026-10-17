@@ -1,8 +1,17 @@
-// The three sites. Each returns { short, status, history[] } (history oldest first). `read(img, len)` reads a captcha.
+// The three sites. Each takes one record's .env fields (`rec`: ID, MOBILE, …) and returns { short, status, history[],
+// latest[] }: history oldest first, latest = the newest update's lines in full. `read(img, len)` reads a captcha.
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
 import { clip, nice, who } from './rules.js';
+
+const flat = (s) =>
+  String(s ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+/** The newest update's lines as the site words them; empty ones dropped. `field`: a labelled line, '' if empty. */
+const lines = (...xs) => xs.map(flat).filter(Boolean);
+const field = (label, v) => (flat(v) ? `${label}: ${flat(v)}` : '');
 
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
@@ -33,9 +42,9 @@ function session() {
 }
 
 /** Karnataka IPGRS: captcha + registered mobile, JSON API. */
-export async function ipgrs({ env, cfg, read }) {
+export async function ipgrs({ rec, cfg, read }) {
   const H = 'https://ipgrs.karnataka.gov.in',
-    id = env.IPGRS_ID,
+    id = rec.ID,
     s = session();
   await s(`${H}/Grievance/GetGrievanceStatus?grievanceId=${id}`);
   let d,
@@ -50,7 +59,7 @@ export async function ipgrs({ env, cfg, read }) {
     const r = await (
       await s(`${H}/Grievance/VerifyGrievanceStatus`, {
         GrievanceId: id,
-        MobileOrEmail: env.IPGRS_MOBILE,
+        MobileOrEmail: rec.MOBILE,
         Captcha: cap,
       })
     ).json();
@@ -63,11 +72,12 @@ export async function ipgrs({ env, cfg, read }) {
     short: nice(d.Status),
     status: `${d.Status}${d.PendencyDetails ? ` — pending with ${d.PendencyDetails}` : ''}`,
     history: hist.map((h) => `${h.When}: ${h.Description}${h.Remarks ? ` — “${clip(h.Remarks)}”` : ''}`),
+    latest: hist.length ? lines(hist.at(-1).When, hist.at(-1).Description, field('Remarks', hist.at(-1).Remarks)) : [],
   };
 }
 
 /** AP PGRS: an ASP.NET postback that only works from a real browser page. */
-export async function pgrs({ env, cfg, log, read }) {
+export async function pgrs({ rec, cfg, log, read }) {
   let browser, page;
   try {
     // After one wrong captcha the site answers HTTP 500 to everything else from that browser
@@ -102,7 +112,7 @@ export async function pgrs({ env, cfg, log, read }) {
         (el, v) => {
           el.value = v;
         },
-        env.PGRS_ID,
+        rec.ID,
       );
       await page.$eval(
         '#txtCaptcha',
@@ -168,6 +178,15 @@ export async function pgrs({ env, cfg, log, read }) {
       history: history.map(
         (h) => `${h.date}: ${h.action}${h.to ? ` → ${h.to}` : ''}${h.note ? ` — “${clip(h.note)}”` : ''}`,
       ),
+      latest: latest
+        ? lines(
+            latest.date,
+            field('Action', latest.action),
+            field('From', latest.from),
+            field('To', latest.to),
+            latest.note,
+          )
+        : [],
     };
   } finally {
     await browser?.close().catch(() => {});
@@ -175,10 +194,10 @@ export async function pgrs({ env, cfg, log, read }) {
 }
 
 /** AP eMunicipal property tax: public JSON API, no captcha. */
-export async function emunicipal({ env }) {
+export async function emunicipal({ rec }) {
   const A = 'https://emunicipal.ap.gov.in/apiv1',
-    ulb = env.EMUN_ULB_ID,
-    app = env.EMUN_APP;
+    ulb = rec.ULB_ID,
+    app = rec.APP;
   const get = async (p) => {
     const r = await fetch(A + p, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(60000) });
     if (!r.ok) throw new Error(`${p}: HTTP ${r.status}`);
@@ -197,5 +216,14 @@ export async function emunicipal({ env }) {
     history: wf
       .toReversed()
       .map((w) => `${w.date_txt}: ${w.status} by ${who(w.updated_by)}${w.comments ? ` — “${clip(w.comments)}”` : ''}`),
+    latest: wf[0]
+      ? lines(
+          wf[0].date_txt,
+          wf[0].status,
+          field('By', who(wf[0].updated_by)),
+          field('Comments', wf[0].comments),
+          field('Next', wf[0].nextaction),
+        )
+      : [],
   };
 }

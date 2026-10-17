@@ -1,5 +1,5 @@
-// Decisions and text, no I/O: the captcha prompt, and the digest (one line per site plus its latest update;
-// a change adds what changed and the site's link).
+// Decisions and text, no I/O: the records to check (from .env), the captcha prompt, and the digest (one line per
+// record plus its latest update; a change adds what changed and the link; then each record's latest update in full).
 export const clip = (s, n = 280) => {
   s = String(s ?? '')
     .replace(/\s+/g, ' ')
@@ -14,6 +14,72 @@ export const nice = (s) => {
   return s[0]?.toUpperCase() + s.slice(1);
 }; // 'InProcess' -> 'In process'
 export const who = (s) => String(s ?? '').replace(/^[^:]*::/, ''); // '1234567::A B NAME' -> 'A B NAME'
+
+/**
+ * The kinds of record. A record is a group of .env keys `<PREFIX>[n]_<FIELD>`, e.g. IPGRS_ID or IPGRS2_ID for a
+ * second grievance. `need`: required fields. Every kind also takes TITLE, URL (the link in the message) and ENABLED.
+ */
+export const KINDS = {
+  ipgrs: {
+    prefix: 'IPGRS',
+    title: 'KA Grievance',
+    need: ['ID', 'MOBILE'],
+    captcha: true,
+    url: (f) => `https://ipgrs.karnataka.gov.in/Grievance/GetGrievanceStatus?grievanceId=${f.ID}`,
+  },
+  pgrs: {
+    prefix: 'PGRS',
+    title: 'AP Grievance',
+    need: ['ID'],
+    captcha: true,
+    url: () => 'https://pgrs.ap.gov.in/ApplicationStatus.aspx',
+  },
+  emunicipal: {
+    prefix: 'EMUN',
+    title: 'Property Tax',
+    need: ['ULB_ID', 'APP'],
+    captcha: false,
+    url: () => 'https://emunicipal.ap.gov.in/services/property-tax/application-status',
+  },
+};
+const COMMON = ['TITLE', 'URL', 'ENABLED'];
+export const RECORD_KEY = /^(IPGRS|PGRS|EMUN)(\d*)_([A-Z_]+)$/;
+
+/**
+ * The records in `env` (.env keys), in .env order: { key, kind, title, url, enabled, captcha, fields }, and the
+ * problems (unknown setting, missing required field). `key` ('ipgrs', 'ipgrs2', …) names the saved last result.
+ */
+export function records(env) {
+  const byPrefix = new Map(),
+    problems = [];
+  for (const [k, v] of Object.entries(env)) {
+    const m = k.match(RECORD_KEY);
+    if (!m) continue;
+    const [, prefix, n, field] = m;
+    const kind = Object.keys(KINDS).find((x) => KINDS[x].prefix === prefix);
+    if (![...KINDS[kind].need, ...COMMON].includes(field)) {
+      problems.push(`${k}: unknown setting (${prefix} takes ${[...KINDS[kind].need, ...COMMON].join(', ')})`);
+      continue;
+    }
+    if (!byPrefix.has(prefix + n)) byPrefix.set(prefix + n, { key: kind + n, kind, fields: {} });
+    byPrefix.get(prefix + n).fields[field] = String(v ?? '').trim();
+  }
+  const list = [...byPrefix.entries()].map(([p, { key, kind, fields: f }]) => {
+    const enabled = !/^(false|no|off|0)$/i.test(f.ENABLED ?? '');
+    const missing = KINDS[kind].need.filter((x) => !f[x]);
+    if (enabled && missing.length) problems.push(`${p}: missing ${missing.map((x) => `${p}_${x}`).join(', ')}`);
+    return {
+      key,
+      kind,
+      title: f.TITLE || KINDS[kind].title + (key === kind ? '' : ` ${key.slice(kind.length)}`),
+      url: f.URL || KINDS[kind].url(f),
+      enabled,
+      captcha: KINDS[kind].captcha,
+      fields: f,
+    };
+  });
+  return { list, problems };
+}
 
 /**
  * The captcha's `len` letters/digits as the model reads them, or null. Plain text, not a JSON schema: measured on
@@ -51,12 +117,22 @@ export function section(site, prev, r) {
   return out.join('\n');
 }
 
-/** The WhatsApp message. `model`: label of the model that read captchas this run, if any. */
+/** One record's full latest update, as the site shows it (quoted), for the details at the bottom; null if none. */
+export function detail(site, r) {
+  if (r.error || !(r.status || r.latest?.length)) return null;
+  return [`*${site.title}*`, `Status: ${r.status}`, ...(r.latest ?? []).map((l) => `> ${clip(l, 2000)}`)].join('\n');
+}
+
+/** The WhatsApp message: the summary, then the latest update of each in full. `model`: who read the captchas, if any. */
 export function digest(sites, prev, results, model, timeZone, now = new Date()) {
   const day = now.toLocaleDateString('en-GB', { timeZone, weekday: 'short', day: 'numeric', month: 'short' });
+  const details = sites.map((s) => detail(s, results[s.key])).filter(Boolean);
   return [
     `*Application status · ${day}*`,
     ...sites.map((s) => section(s, prev[s.key], results[s.key])),
-    ...(model ? [`_🤖 ${model} (local)_`] : []),
+    ...(details.length
+      ? ['', '📋 *Details* · latest update on each site, as written there', '', details.join('\n\n')]
+      : []),
+    ...(model ? ['', `_🤖 ${model} (local)_`] : []),
   ].join('\n');
 }

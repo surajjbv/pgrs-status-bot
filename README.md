@@ -33,21 +33,30 @@ nobody's favourite job, so this bot does it and tells the family only what chang
   <tr>
     <td align="center" width="33%"><h3>🔎</h3><b>Checks the portals</b><br><sub>Karnataka IPGRS, AP PGRS and AP eMunicipal, all at once, at 07:00 and 20:00</sub></td>
     <td align="center" width="33%"><h3>🧠</h3><b>Solves the captchas</b><br><sub>A local AI model reads each captcha; a wrong guess just tries again</sub></td>
-    <td align="center" width="33%"><h3>💬</h3><b>One short WhatsApp</b><br><sub>One line per application; 🔔 marks a change, with the newest update and a link</sub></td>
+    <td align="center" width="33%"><h3>💬</h3><b>One short WhatsApp</b><br><sub>One line per application; 🔔 marks a change, with a link. Below: each one's newest update in full</sub></td>
   </tr>
 </table>
 
 If the Mac was asleep at send time, it sends 10 minutes after it wakes. A send time is never sent twice.
 
+The message has two parts. The top is a short summary with one line per application. Below it, **📋 Details**
+gives each application's newest update in full, with the date, action, officer and remarks as the site wrote them,
+for anyone who wants to read more.
+
 ## 🚀 Set it up
 
 <table>
   <tr>
-    <td align="center" width="33%"><b>1 · Fill in</b><br><sub>Copy <code>.env.example</code> to <code>.env</code>: your application numbers, mobile and WhatsApp group</sub></td>
+    <td align="center" width="33%"><b>1 · Fill in</b><br><sub>Copy <code>.env.example</code> to <code>.env</code>: your WhatsApp group and the applications to check</sub></td>
     <td align="center" width="33%"><b>2 · Link WhatsApp</b><br><sub><code>npm run login</code> and scan the QR (WhatsApp › Linked devices)</sub></td>
     <td align="center" width="33%"><b>3 · Switch it on</b><br><sub><code>npm run schedule</code>. To send right now: double-click <code>run-now.command</code></sub></td>
   </tr>
 </table>
+
+**Your applications** are groups of keys in `.env`: `IPGRS_…` (Karnataka), `PGRS_…` (AP) and `EMUN_…` (property
+tax). Each group has the application number plus, optionally, `_TITLE` (name in the message), `_URL` (the link) and
+`_ENABLED=false` to pause it. To track a second one of the same kind, add a number to the prefix: `IPGRS2_ID`,
+`IPGRS2_MOBILE`, and so on. `.env.example` shows all of these.
 
 Needs a Mac with Node 24+, Google Chrome and [LM Studio](https://lmstudio.ai) with Qwen3.8 27B.
 
@@ -67,6 +76,9 @@ status lookups and the WhatsApp message leave it.
   <img src="https://img.shields.io/badge/whatsapp--web.js-headless%20Chrome-25D366?style=flat-square" alt="whatsapp-web.js">
 </p>
 
+- **Records** come from `.env` keys `<IPGRS|PGRS|EMUN>[n]_<FIELD>` (`records()` in rules.js: required fields,
+  TITLE/URL/ENABLED, unknown keys are a config error). The key (`ipgrs`, `ipgrs2`, …) names the saved last result;
+  `--only=<keys>` checks just those, even if disabled.
 - **One run = collect → decide → act.** Collect: IPGRS (JSON API, 5-character captcha), PGRS (headless Chrome, a
   new one per try, an 8 s wait before submitting, case-sensitive 6-character captcha), eMunicipal (public JSON
   API), in parallel; up to `captchaTries` per site. Decide: compare with the last sent result. Act: send, then save.
@@ -80,12 +92,12 @@ status lookups and the WhatsApp message leave it.
 
 ```
 bot.js            the run: collect → decide → act
-sources.js        the three sites (HTTP, headless Chrome)
-rules.js          captcha prompt, digest text (pure, tested)
+sources.js        the three sites (HTTP, headless Chrome); each returns status, history and the newest update in full
+rules.js          records from .env, captcha prompt, digest text with details (pure, tested)
 kit.js            shared kit: config, log, store, model sharing, WhatsApp, run, scheduler
 test.js · kit.test.js       npm test
 config.json       public settings (runTimes, timezone, whatsappDir, captchaTries, debugCaptcha, model)
-.env.example      personal values template (.env is gitignored)
+.env.example      personal values template: group + records (.env is gitignored)
 pii-check.sh      personal-data gate: bash pii-check.sh && git commit ...
 run-now.command   double-click = npm start
 data/             (gitignored) bot.db · bot.log · run.out · schedule.json · pgrs-last.html
