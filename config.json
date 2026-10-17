@@ -7,5 +7,7 @@
   "whatsappDir": "~/.local/state/whatsapp",
   "captchaTries": 8,
   "debugCaptcha": false,
+  "_shortLinks": "TinyURL links in the message; each status-page URL is sent to tinyurl.com once. false: full links",
+  "shortLinks": true,
   "chromePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 }

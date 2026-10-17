@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ConfigError, expandHome, llm, ModelBusy, openWhatsApp, ROOT, runBot } from './kit.js';
 import { digest, RECORD_KEY, readCaptcha, records } from './rules.js';
-import { emunicipal, ipgrs, pgrs } from './sources.js';
+import { emunicipal, ipgrs, pgrs, shortLink } from './sources.js';
 
 const RUN = { ipgrs, pgrs, emunicipal };
 // The record keys in .env (IPGRS_ID, PGRS2_ENABLED, …), so the kit passes them on; rules.js checks their names.
@@ -23,6 +23,7 @@ runBot({
     whatsappDir: 'data', // folder holding wa-auth/ (the linked WhatsApp login); can be shared with other bots
     captchaTries: 8, // per site; a wrong read just costs a new captcha
     debugCaptcha: false, // save each captcha with the model's reading in data/
+    shortLinks: true, // TinyURL links in the message (each URL is sent to tinyurl.com once); false: full links
   },
   env: ['GROUP_NAME'],
   optionalEnv: recordEnv,
@@ -76,7 +77,13 @@ runBot({
     );
     llm.release(); // free the memory before WhatsApp starts its browser
 
-    // decide
+    // decide: each record's link, shortened once and kept (a failed shortening is retried next run)
+    if (cfg.shortLinks)
+      for (const s of sites) {
+        s.link = store.get(`link:${s.url}`) ?? (await shortLink(s.url));
+        if (s.link) store.set(`link:${s.url}`, s.link);
+        else log.warn(`${s.key}: no short link (TinyURL unreachable); sending the full one`);
+      }
     const prev = Object.fromEntries(sites.map((s) => [s.key, store.get(`site:${s.key}`)]));
     const text = digest(sites, prev, results, llm.usage().calls ? llm.label(cfg.model) : null, cfg.timezone);
     log.box(`sending to "${env.GROUP_NAME}"`, text);

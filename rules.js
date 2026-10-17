@@ -1,5 +1,5 @@
 // Decisions and text, no I/O: the records to check (from .env), the captcha prompt, and the digest (one line per
-// record plus its latest update; a change adds what changed and the link; then each record's latest update in full).
+// record with its number, latest update and link; a change adds what changed; then each latest update in full).
 export const clip = (s, n = 280) => {
   s = String(s ?? '')
     .replace(/\s+/g, ' ')
@@ -17,13 +17,15 @@ export const who = (s) => String(s ?? '').replace(/^[^:]*::/, ''); // '1234567::
 
 /**
  * The kinds of record. A record is a group of .env keys `<PREFIX>[n]_<FIELD>`, e.g. IPGRS_ID or IPGRS2_ID for a
- * second grievance. `need`: required fields. Every kind also takes TITLE, URL (the link in the message) and ENABLED.
+ * second grievance. `need`: required fields; `number`: the one shown in the message (the application/grievance
+ * number). Every kind also takes TITLE, URL (the link in the message) and ENABLED.
  */
 export const KINDS = {
   ipgrs: {
     prefix: 'IPGRS',
     title: 'KA Grievance',
     need: ['ID', 'MOBILE'],
+    number: 'ID',
     captcha: true,
     url: (f) => `https://ipgrs.karnataka.gov.in/Grievance/GetGrievanceStatus?grievanceId=${f.ID}`,
   },
@@ -31,6 +33,7 @@ export const KINDS = {
     prefix: 'PGRS',
     title: 'AP Grievance',
     need: ['ID'],
+    number: 'ID',
     captcha: true,
     url: () => 'https://pgrs.ap.gov.in/ApplicationStatus.aspx',
   },
@@ -38,6 +41,7 @@ export const KINDS = {
     prefix: 'EMUN',
     title: 'Property Tax',
     need: ['ULB_ID', 'APP'],
+    number: 'APP',
     captcha: false,
     url: () => 'https://emunicipal.ap.gov.in/services/property-tax/application-status',
   },
@@ -46,7 +50,7 @@ const COMMON = ['TITLE', 'URL', 'ENABLED'];
 export const RECORD_KEY = /^(IPGRS|PGRS|EMUN)(\d*)_([A-Z_]+)$/;
 
 /**
- * The records in `env` (.env keys), in .env order: { key, kind, title, url, enabled, captcha, fields }, and the
+ * The records in `env` (.env keys), in .env order: { key, kind, title, number, url, enabled, captcha, fields }, and the
  * problems (unknown setting, missing required field). `key` ('ipgrs', 'ipgrs2', …) names the saved last result.
  */
 export function records(env) {
@@ -72,6 +76,7 @@ export function records(env) {
       key,
       kind,
       title: f.TITLE || KINDS[kind].title + (key === kind ? '' : ` ${key.slice(kind.length)}`),
+      number: f[KINDS[kind].number] ?? '',
       url: f.URL || KINDS[kind].url(f),
       enabled,
       captcha: KINDS[kind].captcha,
@@ -103,24 +108,33 @@ export function brief(h) {
   return clip(`${day}: ${what[0].toUpperCase()}${what.slice(1)}`, 90);
 }
 
-/** One site's lines: ✅ unchanged, 🔔 changed (with link), ⚠️ couldn't check. `prev`: last sent result. */
+/** A record's name in the message: title and application/grievance number. */
+const name = (site) => `*${site.title}*${site.number ? ` · ${site.number}` : ''}`;
+
+/**
+ * One record's lines: ✅ unchanged, 🔔 changed, ⚠️ couldn't check; each ends with its link (`site.link`, the short
+ * one, else `site.url`). `prev`: last sent result.
+ */
 export function section(site, prev, r) {
-  if (r.error) return `⚠️ *${site.title}* — couldn't check today`;
+  const link = `   🔗 ${site.link || site.url}`;
+  if (r.error) return `⚠️ ${name(site)} — couldn't check today\n${link}`;
   const short = r.short ?? r.status;
   const fresh = prev ? r.history.filter((h) => !prev.history.includes(h)) : [];
-  const latest = r.history.length ? `\n   ↳ ${brief(r.history.at(-1))}` : '';
-  if (!prev || (!fresh.length && prev.status === r.status)) return `✅ *${site.title}* — ${short}${latest}`;
+  if (!prev || (!fresh.length && prev.status === r.status))
+    return [`✅ ${name(site)} — ${short}`, ...(r.history.length ? [`   ↳ ${brief(r.history.at(-1))}`] : []), link].join(
+      '\n',
+    );
   const was = prev.short ?? prev.status;
-  const out = [`🔔 *${site.title}* — ${was !== short ? `${was} → ${short}` : short}`];
+  const out = [`🔔 ${name(site)} — ${was !== short ? `${was} → ${short}` : short}`];
   if (fresh.length) out.push(`   ↳ ${brief(fresh.at(-1))}${fresh.length > 1 ? ` (+${fresh.length - 1} more)` : ''}`);
-  out.push(`   ${site.url}`);
+  out.push(link);
   return out.join('\n');
 }
 
 /** One record's full latest update, as the site shows it (quoted), for the details at the bottom; null if none. */
 export function detail(site, r) {
   if (r.error || !(r.status || r.latest?.length)) return null;
-  return [`*${site.title}*`, `Status: ${r.status}`, ...(r.latest ?? []).map((l) => `> ${clip(l, 2000)}`)].join('\n');
+  return [name(site), `Status: ${r.status}`, ...(r.latest ?? []).map((l) => `> ${clip(l, 2000)}`)].join('\n');
 }
 
 /** The WhatsApp message: the summary, then the latest update of each in full. `model`: who read the captchas, if any. */
@@ -129,7 +143,8 @@ export function digest(sites, prev, results, model, timeZone, now = new Date()) 
   const details = sites.map((s) => detail(s, results[s.key])).filter(Boolean);
   return [
     `*Application status · ${day}*`,
-    ...sites.map((s) => section(s, prev[s.key], results[s.key])),
+    '',
+    sites.map((s) => section(s, prev[s.key], results[s.key])).join('\n\n'),
     ...(details.length
       ? ['', '📋 *Details* · latest update on each site, as written there', '', details.join('\n\n')]
       : []),

@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { brief, detail, digest, nice, readCaptcha, records, section, who } from './rules.js';
 
-const site = { key: 'emunicipal', title: 'Property Tax', url: 'https://example.gov.in/status' };
+const site = {
+  key: 'emunicipal',
+  title: 'Property Tax',
+  number: 'A-1',
+  url: 'https://example.gov.in/status',
+  link: 'https://tinyurl.com/abc',
+};
 const r1 = {
   short: 'Assistant approved',
   status: 'Assistant Approved',
@@ -28,26 +34,32 @@ test('nice, who, brief', () => {
   assert.equal(brief('no date here'), 'no date here');
 });
 
-test('section: first sight, unchanged, changed, failed', () => {
-  assert.equal(
-    section(site, undefined, r1),
-    '✅ *Property Tax* — Assistant approved\n   ↳ 29 Sep: Assistant Approved by B',
-  );
-  assert.equal(section(site, r1, r1), '✅ *Property Tax* — Assistant approved\n   ↳ 29 Sep: Assistant Approved by B');
+test('section: number and link always; first sight, unchanged, changed, failed', () => {
+  const same =
+    '✅ *Property Tax* · A-1 — Assistant approved\n   ↳ 29 Sep: Assistant Approved by B\n   🔗 https://tinyurl.com/abc';
+  assert.equal(section(site, undefined, r1), same);
+  assert.equal(section(site, r1, r1), same);
   assert.equal(
     section(site, r1, r2),
-    '🔔 *Property Tax* — Assistant approved → Bill collector approved\n   ↳ 30 Sep: Bill Collector Approved by C D NAME\n   https://example.gov.in/status',
+    '🔔 *Property Tax* · A-1 — Assistant approved → Bill collector approved\n   ↳ 30 Sep: Bill Collector Approved by C D NAME\n   🔗 https://tinyurl.com/abc',
   );
-  assert.equal(section(site, r1, { error: 'HTTP 500' }), "⚠️ *Property Tax* — couldn't check today");
+  assert.equal(
+    section(site, r1, { error: 'HTTP 500' }),
+    "⚠️ *Property Tax* · A-1 — couldn't check today\n   🔗 https://tinyurl.com/abc",
+  );
+  assert.equal(
+    section({ ...site, number: '', link: null }, r1, { error: 'x' }),
+    "⚠️ *Property Tax* — couldn't check today\n   🔗 https://example.gov.in/status",
+  );
 });
 
 test('detail: status and the latest update in full, quoted; nothing for a failed check', () => {
   const long = 'x '.repeat(400).trim();
   assert.equal(
     detail(site, { ...r1, latest: [...r1.latest, `Comments: ${long}`] }),
-    `*Property Tax*\nStatus: Assistant Approved\n> 29/09/2026 11:00:00\n> Assistant Approved\n> By: B\n> Comments: ${long}`,
+    `*Property Tax* · A-1\nStatus: Assistant Approved\n> 29/09/2026 11:00:00\n> Assistant Approved\n> By: B\n> Comments: ${long}`,
   );
-  assert.equal(detail(site, { status: 'Open', history: [] }), '*Property Tax*\nStatus: Open');
+  assert.equal(detail(site, { status: 'Open', history: [] }), '*Property Tax* · A-1\nStatus: Open');
   assert.equal(detail(site, { error: 'HTTP 500' }), null);
 });
 
@@ -57,12 +69,14 @@ test('digest: header, sections, details, model footer only when the model read c
     digest([site], {}, { emunicipal: r1 }, 'Qwen 3.8 27B', 'Asia/Kolkata', now),
     [
       '*Application status · Mon 5 Oct*',
-      '✅ *Property Tax* — Assistant approved',
+      '',
+      '✅ *Property Tax* · A-1 — Assistant approved',
       '   ↳ 29 Sep: Assistant Approved by B',
+      '   🔗 https://tinyurl.com/abc',
       '',
       '📋 *Details* · latest update on each site, as written there',
       '',
-      '*Property Tax*',
+      '*Property Tax* · A-1',
       'Status: Assistant Approved',
       '> 29/09/2026 11:00:00',
       '> Assistant Approved',
@@ -92,12 +106,12 @@ test('records: groups of .env keys, defaults, numbered extras, ENABLED toggle, p
   });
   assert.deepEqual(problems, []);
   assert.deepEqual(
-    list.map((r) => [r.key, r.title, r.enabled, r.url]),
+    list.map((r) => [r.key, r.title, r.number, r.enabled, r.url]),
     [
-      ['pgrs', 'AP Grievance', true, 'https://pgrs.ap.gov.in/ApplicationStatus.aspx'],
-      ['ipgrs', 'KA Grievance', true, 'https://ipgrs.karnataka.gov.in/Grievance/GetGrievanceStatus?grievanceId=1'],
-      ['ipgrs2', 'Old one', false, 'https://ipgrs.karnataka.gov.in/Grievance/GetGrievanceStatus?grievanceId=2'],
-      ['emunicipal', 'Property Tax', true, 'https://example.gov.in/x'],
+      ['pgrs', 'AP Grievance', 'P1', true, 'https://pgrs.ap.gov.in/ApplicationStatus.aspx'],
+      ['ipgrs', 'KA Grievance', '1', true, 'https://ipgrs.karnataka.gov.in/Grievance/GetGrievanceStatus?grievanceId=1'],
+      ['ipgrs2', 'Old one', '2', false, 'https://ipgrs.karnataka.gov.in/Grievance/GetGrievanceStatus?grievanceId=2'],
+      ['emunicipal', 'Property Tax', 'A-1', true, 'https://example.gov.in/x'],
     ],
   );
   assert.deepEqual(list[1].fields, { ID: '1', MOBILE: '9' });

@@ -33,13 +33,14 @@ nobody's favourite job, so this bot does it and tells the family only what chang
   <tr>
     <td align="center" width="33%"><h3>🔎</h3><b>Checks the portals</b><br><sub>Karnataka IPGRS, AP PGRS and AP eMunicipal, all at once, at 07:00 and 20:00</sub></td>
     <td align="center" width="33%"><h3>🧠</h3><b>Solves the captchas</b><br><sub>A local AI model reads each captcha; a wrong guess just tries again</sub></td>
-    <td align="center" width="33%"><h3>💬</h3><b>One short WhatsApp</b><br><sub>One line per application; 🔔 marks a change, with a link. Below: each one's newest update in full</sub></td>
+    <td align="center" width="33%"><h3>💬</h3><b>One short WhatsApp</b><br><sub>Each application with its number, newest update and a short link; 🔔 marks a change. Below: each update in full</sub></td>
   </tr>
 </table>
 
 If the Mac was asleep at send time, it sends 10 minutes after it wakes. A send time is never sent twice.
 
-The message has two parts. The top is a short summary with one line per application. Below it, **📋 Details**
+The message has two parts. The top is a short summary: for each application its number, status, newest update and
+a short link (TinyURL, because WhatsApp can't link words) that opens its status page. Below it, **📋 Details**
 gives each application's newest update in full, with the date, action, officer and remarks as the site wrote them,
 for anyone who wants to read more.
 
@@ -63,7 +64,9 @@ Needs a Mac with Node 24+, Google Chrome and [LM Studio](https://lmstudio.ai) wi
 ## 🔒 Private by design
 
 Your numbers and group name stay in `.env` on your Mac and are never committed. The AI runs on the Mac; only the
-status lookups and the WhatsApp message leave it.
+status lookups, the WhatsApp message and the links leave it. Each status-page link is shortened by tinyurl.com
+once (the Karnataka link includes the grievance number) and then reused; set `"shortLinks": false` in
+`config.json` to send full links instead.
 
 <details>
 <summary><b>🛠️ For developers</b></summary>
@@ -96,7 +99,7 @@ sources.js        the three sites (HTTP, headless Chrome); each returns status, 
 rules.js          records from .env, captcha prompt, digest text with details (pure, tested)
 kit.js            shared kit: config, log, store, model sharing, WhatsApp, run, scheduler
 test.js · kit.test.js       npm test
-config.json       public settings (runTimes, timezone, whatsappDir, captchaTries, debugCaptcha, model)
+config.json       public settings (runTimes, timezone, whatsappDir, captchaTries, debugCaptcha, shortLinks, model)
 .env.example      personal values template: group + records (.env is gitignored)
 pii-check.sh      personal-data gate: bash pii-check.sh && git commit ...
 run-now.command   double-click = npm start

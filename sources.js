@@ -227,3 +227,17 @@ export async function emunicipal({ rec }) {
       : [],
   };
 }
+
+/** A TinyURL for `url` (free, no key), or null if TinyURL can't be reached. The caller keeps it, so once per URL. */
+export async function shortLink(url) {
+  try {
+    const r = await fetch(`https://tinyurl.com/api-create.php?${new URLSearchParams({ url })}`, {
+      headers: { 'user-agent': UA },
+      signal: AbortSignal.timeout(15000),
+    });
+    const t = (await r.text()).trim();
+    return r.ok && /^https:\/\/tinyurl\.com\/\w+$/.test(t) ? t : null;
+  } catch {
+    return null;
+  }
+}
