@@ -19,7 +19,7 @@ const recordEnv = fs.existsSync(envFile)
 runBot({
   name: 'pgrs-status-bot',
   defaults: {
-    runTimes: ['07:00', '20:00'],
+    runTimes: ['20:00'], // once a day, with school-reminder-bot's message
     whatsappDir: 'data', // folder holding wa-auth/ (the linked WhatsApp login); can be shared with other bots
     captchaTries: 8, // per site; a wrong read just costs a new captcha
     debugCaptcha: false, // save each captcha with the model's reading in data/

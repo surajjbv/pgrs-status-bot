@@ -2,7 +2,7 @@
 
 <p align="center">
   <b>Government grievances move slowly, and every portal hides the status behind a captcha.<br>
-  This bot checks them for you and sends one short WhatsApp, twice a day.</b>
+  This bot checks them for you and sends one short WhatsApp every evening.</b>
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Free-no%20subscriptions-F7C21A?style=flat-square" alt="Free">
   <img src="https://img.shields.io/badge/Local%20AI-reads%20the%20captchas-8E7CC3?style=flat-square" alt="Local AI">
   <img src="https://img.shields.io/badge/WhatsApp-digest-25D366?style=flat-square" alt="WhatsApp digest">
-  <img src="https://img.shields.io/badge/Hands--free-07%3A00%20%26%2020%3A00-4FB3E8?style=flat-square" alt="Hands-free">
+  <img src="https://img.shields.io/badge/Hands--free-daily%20at%2020%3A00-4FB3E8?style=flat-square" alt="Hands-free">
 </p>
 
 <p align="center">
@@ -24,14 +24,14 @@
 ## 💡 Why
 
 A complaint to a government office can take weeks, and the only way to know is to open each portal, type the
-reference number, solve a captcha and read a long history table. Doing that for three applications, twice a day, is
+reference number, solve a captcha and read a long history table. Doing that for three applications every day is
 nobody's favourite job, so this bot does it and tells the family only what changed.
 
 ## ⚙️ How it works
 
 <table>
   <tr>
-    <td align="center" width="33%"><h3>🔎</h3><b>Checks the portals</b><br><sub>Karnataka IPGRS, AP PGRS and AP eMunicipal, all at once, at 07:00 and 20:00</sub></td>
+    <td align="center" width="33%"><h3>🔎</h3><b>Checks the portals</b><br><sub>Karnataka IPGRS, AP PGRS and AP eMunicipal, all at once, every evening at 20:00</sub></td>
     <td align="center" width="33%"><h3>🧠</h3><b>Solves the captchas</b><br><sub>A local AI model reads each captcha; a wrong guess just tries again</sub></td>
     <td align="center" width="33%"><h3>💬</h3><b>One short WhatsApp</b><br><sub>Each application with its number, newest update and a short link; 🔔 marks a change. Below: each update in full</sub></td>
   </tr>
