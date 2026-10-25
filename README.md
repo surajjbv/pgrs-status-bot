@@ -37,7 +37,7 @@ nobody's favourite job, so this bot does it and tells the family only what chang
   </tr>
 </table>
 
-If the Mac was asleep at send time, it sends 10 minutes after it wakes. A send time is never sent twice.
+If the Mac was asleep or off at send time, it sends 10 minutes after it wakes or you log in, however late, until the next 20:00. A send time is never sent twice.
 
 The message has two parts. The top is a short summary: for each application its number, status, newest update and
 a short link (TinyURL, because WhatsApp can't link words) that opens its status page. Below it, **📋 Details**
@@ -91,7 +91,7 @@ once (the Karnataka link includes the grievance number) and then reused; set `"s
 - **WhatsApp** is one linked login shared with school-reminder-bot (`whatsappDir`: `~/.local/state/whatsapp`); the
   bots take turns via a lock. It's released before WhatsApp starts Chrome.
 - **Scheduling:** launchd runs `node kit.js tick` every 5 min: once per `runTimes` slot, 10 min after boot/wake,
-  retries after 5 min ×3 then every 30 min, skips slots older than 10 h.
+  retries after 5 min ×3 then every 30 min, catches up a missed slot however late, until the next one.
 
 ```
 bot.js            the run: collect → decide → act
