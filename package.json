@@ -27,7 +27,7 @@
   "license": "MIT",
   "main": "bot.js",
   "devDependencies": {
-    "@biomejs/biome": "2.5.15"
+    "@biomejs/biome": "2.6.4"
   },
   "overrides": {
     "puppeteer": "25.17.0",
